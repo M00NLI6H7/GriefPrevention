@@ -88,6 +88,7 @@ public class DatabaseDataStore extends DataStore
     {
         try
         {
+            Class.forName("org.postgresql.Driver");
             this.refreshDataConnection();
         }
         catch (Exception e2)
