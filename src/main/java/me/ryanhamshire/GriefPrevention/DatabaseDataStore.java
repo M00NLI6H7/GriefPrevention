@@ -31,7 +31,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -102,7 +101,7 @@ public class DatabaseDataStore extends DataStore
             //ensure the data tables exist
             statement.execute("CREATE TABLE IF NOT EXISTS griefprevention_nextclaimid (nextid INTEGER)");
             statement.execute("CREATE TABLE IF NOT EXISTS griefprevention_claimdata (id INTEGER, owner VARCHAR(50), lessercorner VARCHAR(100), greatercorner VARCHAR(100), builders TEXT, containers TEXT, accessors TEXT, managers TEXT, inheritnothing BOOLEAN, parentid INTEGER)");
-            statement.execute("CREATE TABLE IF NOT EXISTS griefprevention_playerdata (name VARCHAR(50), lastlogin DATETIME, accruedblocks INTEGER, bonusblocks INTEGER)");
+            statement.execute("CREATE TABLE IF NOT EXISTS griefprevention_playerdata (name VARCHAR(50), lastlogin DATE, accruedblocks INTEGER, bonusblocks INTEGER)");
             statement.execute("CREATE TABLE IF NOT EXISTS griefprevention_schemaversion (version INTEGER)");
 
             // By making this run only for MySQL, we technically support SQLite too, as this is the only invalid
@@ -530,13 +529,11 @@ public class DatabaseDataStore extends DataStore
         {
             OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(playerID));
 
-            SimpleDateFormat sqlFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String dateString = sqlFormat.format(new Date(player.getLastPlayed()));
             deleteStmnt.setString(1, playerID);
             deleteStmnt.executeUpdate();
 
             insertStmnt.setString(1, playerID);
-            insertStmnt.setString(2, dateString);
+            insertStmnt.setDate(2, new java.sql.Date(player.getLastPlayed()));
             insertStmnt.setInt(3, playerData.getAccruedClaimBlocks());
             insertStmnt.setInt(4, playerData.getBonusClaimBlocks());
             insertStmnt.executeUpdate();
@@ -579,16 +576,14 @@ public class DatabaseDataStore extends DataStore
     synchronized void saveGroupBonusBlocks(String groupName, int currentValue)
     {
         //group bonus blocks are stored in the player data table, with player name = $groupName
-        try (PreparedStatement deleteStmnt = this.databaseConnection.prepareStatement(SQL_DELETE_GROUP_DATA);
-             PreparedStatement insertStmnt = this.databaseConnection.prepareStatement(SQL_INSERT_PLAYER_DATA))
+        try (final PreparedStatement deleteStmnt = this.databaseConnection.prepareStatement(SQL_DELETE_GROUP_DATA);
+             final PreparedStatement insertStmnt = this.databaseConnection.prepareStatement(SQL_INSERT_PLAYER_DATA))
         {
-            SimpleDateFormat sqlFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String dateString = sqlFormat.format(new Date());
             deleteStmnt.setString(1, '$' + groupName);
             deleteStmnt.executeUpdate();
 
             insertStmnt.setString(1, '$' + groupName);
-            insertStmnt.setString(2, dateString);
+            insertStmnt.setDate(2, new java.sql.Date(new Date().getTime()));
             insertStmnt.setInt(3, 0);
             insertStmnt.setInt(4, currentValue);
             insertStmnt.executeUpdate();
@@ -701,5 +696,4 @@ public class DatabaseDataStore extends DataStore
         }
         return output;
     }
-
 }
